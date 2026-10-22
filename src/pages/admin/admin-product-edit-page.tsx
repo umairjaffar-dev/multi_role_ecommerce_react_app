@@ -3,6 +3,7 @@ import { ChevronLeft, ExternalLink } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCategoryVisibility } from "@/features/categories/hooks/use-category-visibility";
 import { useUpdateProductMutation } from "@/features/products/api/product.mutations";
 import { adminProductDetailQuery } from "@/features/products/api/product.queries";
 import { DeleteProductButton } from "@/features/products/components/admin/delete-product-button";
@@ -51,6 +52,9 @@ export function AdminProductEditPage() {
   const { data: product } = useSuspenseQuery(adminProductDetailQuery(id));
   const updateMutation = useUpdateProductMutation(id);
   const isDeleted = product.deletedAt !== null;
+  const { isCategoryActive, getCategoryName } = useCategoryVisibility();
+  const isHiddenByCategory =
+    !isDeleted && product.isActive && !isCategoryActive(product.categoryId);
 
   const handleSubmit = ({ values, dirtyFields, setError }: ProductFormSubmitType) => {
     // PATCH only what changed: smaller request, and no accidental overwrite of fields
@@ -83,7 +87,7 @@ export function AdminProductEditPage() {
           <ChevronLeft className="size-4" />
           Back to products
         </Link>
-        {!isDeleted && product.isActive && (
+        {!isDeleted && product.isActive && !isHiddenByCategory && (
           <Link
             to={`/products/${product.slug}`}
             target="_blank"
@@ -96,6 +100,19 @@ export function AdminProductEditPage() {
         )}
       </div>
 
+      {isHiddenByCategory && (
+        <div
+          role="status"
+          className="rounded-lg border border-warning/50 bg-warning/15 p-4 text-sm"
+        >
+          Customers cannot see this product: its category
+          {getCategoryName(product.categoryId)
+            ? ` "${getCategoryName(product.categoryId) ?? ""}"`
+            : ""}{" "}
+          is hidden. Make the category visible, or move the product to a visible category.
+        </div>
+      )}
+
       {isDeleted && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
           This product was deleted on {new Date(product.deletedAt ?? "").toLocaleDateString()}. It
@@ -107,7 +124,11 @@ export function AdminProductEditPage() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <CardTitle className="text-2xl">{product.name}</CardTitle>
-            <ProductStatusBadge isActive={product.isActive} deletedAt={product.deletedAt} />
+            <ProductStatusBadge
+              isActive={product.isActive}
+              deletedAt={product.deletedAt}
+              isCategoryActive={isCategoryActive(product.categoryId)}
+            />
           </div>
           <CardDescription>
             Last updated {new Date(product.updatedAt).toLocaleString()}

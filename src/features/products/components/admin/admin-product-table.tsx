@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useCategoryVisibility } from "@/features/categories/hooks/use-category-visibility";
 import { getErrorMessage } from "@/lib/api/api-error";
 import { formatPaisa } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const COLUMN_COUNT = 7;
 
 export function AdminProductTable() {
   const { filters, updateFilters } = useAdminProductFilters();
+  const { isCategoryActive } = useCategoryVisibility();
   const query = useQuery(adminProductListQuery(filters));
 
   if (query.isError) {
@@ -112,7 +114,11 @@ export function AdminProductTable() {
                     {product.stock}
                   </TableCell>
                   <TableCell>
-                    <ProductStatusBadge isActive={product.isActive} deletedAt={product.deletedAt} />
+                    <ProductStatusBadge
+                      isActive={product.isActive}
+                      deletedAt={product.deletedAt}
+                      isCategoryActive={isCategoryActive(product.category.id)}
+                    />
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">

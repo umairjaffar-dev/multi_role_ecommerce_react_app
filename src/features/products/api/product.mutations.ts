@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/api-client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { invalidateQueriesEverywhere } from "@/lib/query/cross-tab-invalidation";
 import {
   AdminProductImageResponseSchema,
   ProductResponseSchema,
@@ -11,7 +12,8 @@ import { productKeys } from "./product.queries";
 
 /*
  * After any admin write, both admin data and the public storefront cache are invalidated
- * (productKeys.all), so a price change shows up in the shop without a hard reload.
+ * (productKeys.all) in this tab AND in every other open tab, so a new product or price change
+ * shows up in the shop without a hard reload.
  */
 
 export function useCreateProductMutation() {
@@ -22,7 +24,7 @@ export function useCreateProductMutation() {
       const response = await apiClient.post(API_ENDPOINTS.ADMIN.PRODUCTS, payload);
       return ProductResponseSchema.parse(response.data).data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: productKeys.all }),
+    onSuccess: () => invalidateQueriesEverywhere(queryClient, productKeys.all),
   });
 }
 
@@ -40,7 +42,7 @@ export function useUpdateProductMutation(productId: string) {
         productKeys.adminDetail(productId),
         (previous) => (previous ? { ...previous, ...product } : previous),
       );
-      return queryClient.invalidateQueries({ queryKey: productKeys.all });
+      return invalidateQueriesEverywhere(queryClient, productKeys.all);
     },
   });
 }
@@ -53,7 +55,7 @@ export function useDeleteProductMutation() {
     mutationFn: async (productId: string) => {
       await apiClient.delete(API_ENDPOINTS.ADMIN.PRODUCT(productId));
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: productKeys.all }),
+    onSuccess: () => invalidateQueriesEverywhere(queryClient, productKeys.all),
   });
 }
 
@@ -87,7 +89,7 @@ export function useUploadProductImageMutation(productId: string) {
         productKeys.adminDetail(productId),
         (previous) => (previous ? { ...previous, images: [...previous.images, image] } : previous),
       );
-      return queryClient.invalidateQueries({ queryKey: productKeys.all });
+      return invalidateQueriesEverywhere(queryClient, productKeys.all);
     },
   });
 }
