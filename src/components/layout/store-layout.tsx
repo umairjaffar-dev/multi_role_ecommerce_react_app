@@ -2,6 +2,7 @@ import { ShoppingBag } from "lucide-react";
 import { Link, Outlet } from "react-router";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { env } from "@/config/env";
+import { UserMenu } from "@/features/auth/components/user-menu";
 
 /** Public storefront shell: header, page content, footer. */
 export function StoreLayout() {
@@ -13,7 +14,10 @@ export function StoreLayout() {
             <ShoppingBag className="size-5" />
             <span>{env.VITE_APP_NAME}</span>
           </Link>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <UserMenu />
+          </div>
         </div>
       </header>
 

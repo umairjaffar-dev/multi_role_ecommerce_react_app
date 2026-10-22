@@ -16,6 +16,15 @@ export const ApiErrorResponseSchema = z.object({
 
 export type ApiErrorResponseSchemaType = z.infer<typeof ApiErrorResponseSchema>;
 
+/** Backend `validate` middleware puts per-field issues in `details` (code VALIDATION_ERROR). */
+export const ValidationIssueSchema = z.object({
+  location: z.enum(["body", "params", "query"]),
+  field: z.string(),
+  message: z.string(),
+});
+
+export type ValidationIssueSchemaType = z.infer<typeof ValidationIssueSchema>;
+
 /**
  * Normalised error thrown by the API layer.
  * UI code checks `code` (e.g. "INVALID_CREDENTIALS") instead of parsing Axios internals.
@@ -31,6 +40,13 @@ export class ApiError extends Error {
     this.code = params.code;
     this.status = params.status;
     this.details = params.details;
+  }
+
+  /** Field-level issues for forms; empty when the error is not a validation error. */
+  get validationIssues(): Array<ValidationIssueSchemaType> {
+    if (this.code !== "VALIDATION_ERROR") return [];
+    const parsed = z.array(ValidationIssueSchema).safeParse(this.details);
+    return parsed.success ? parsed.data : [];
   }
 }
 
