@@ -41,6 +41,16 @@ export default defineConfig([
       ],
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      // React Router loaders throw redirect() / data() responses by design.
+      "@typescript-eslint/only-throw-error": [
+        "error",
+        {
+          allow: [
+            { from: "lib", name: "Response" },
+            { from: "package", package: "react-router", name: "DataWithResponseInit" },
+          ],
+        },
+      ],
     },
   },
   {

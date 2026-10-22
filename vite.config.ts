@@ -34,7 +34,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 5173,
     // Proxy API calls to the backend so the refresh-token cookie stays same-origin in development.
     proxy: {
       "/api": {

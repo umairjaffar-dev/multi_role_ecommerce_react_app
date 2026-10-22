@@ -23,7 +23,7 @@ Talks to the Express + Drizzle backend (`multi_role_ecommerce_node_app`).
 ```bash
 cp .env.example .env
 npm install
-npm run dev        # http://localhost:3000
+npm run dev        # http://localhost:5173
 ```
 
 The dev server proxies `/api/*` to the backend at `http://localhost:4000`, so the httpOnly
@@ -49,6 +49,7 @@ src/
   config/         Zod-validated environment variables
   lib/
     api/          axios client, error normalisation, response envelope, endpoint paths
+    forms/        React Hook Form helpers (map server errors onto fields)
     utils.ts      cn() helper
   stores/         Zustand stores (auth, theme)
   components/
@@ -59,6 +60,7 @@ src/
     <feature>/
       api/        query/mutation hooks + query keys
       components/ feature-specific UI
+      lib/        non-UI logic (e.g. auth session, route guards)
       schemas/    Zod schemas and inferred types
   pages/          route-level components (thin: compose feature components)
   hooks/          app-wide custom hooks
@@ -76,8 +78,17 @@ src/
 
 ## Auth model
 
-- Access token: kept **in memory only** (Zustand), sent as `Authorization: Bearer <token>`.
-- Refresh token: httpOnly cookie set by the backend; JavaScript never sees it.
-- On a `401`, the API client calls `POST /auth/refresh` once (shared promise for parallel
-  requests, because the backend rotates refresh tokens and treats reuse as theft), then replays
-  the original request.
+| Piece                | How it works                                                                                                                                                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access token         | In memory only (Zustand), sent as `Authorization: Bearer <token>`. Never in localStorage.                                                                                                                                                             |
+| Refresh token        | httpOnly cookie set by the backend (path `/api/v1/auth`); JavaScript never sees it.                                                                                                                                                                   |
+| Page reload          | Root route loader calls `POST /auth/refresh` once to restore the session. A localStorage hint flag (`auth:has-session`, not a secret) lets guests skip this call.                                                                                     |
+| Expired token        | On `401 AUTH_TOKEN_EXPIRED` the API client refreshes once and replays the request. Parallel requests share one refresh (single-flight); tabs refresh one at a time (Web Locks), because the backend rotates refresh tokens and treats reuse as theft. |
+| Register             | Backend only creates the account, so the frontend logs in right after with the same credentials.                                                                                                                                                      |
+| Logout               | `POST /auth/logout`, then local session and query cache are cleared even if the request fails. Other tabs are notified via `BroadcastChannel`.                                                                                                        |
+| Route guards         | Route `loader`s run before rendering: `requireGuestLoader` (/login, /register), `requireAuthLoader` (/account), `requireAdminLoader` (/admin, 403 for non-admins). The backend still enforces roles; guards are UX.                                   |
+| Redirect after login | `?redirectTo=` is accepted only for same-app paths (open-redirect protection).                                                                                                                                                                        |
+| Server errors        | `VALIDATION_ERROR` details and codes like `EMAIL_ALREADY_EXISTS` appear under the matching input; other errors appear above the submit button.                                                                                                        |
+
+Routes: `/login`, `/register`, `/account` (logged in), `/admin` (admin only).
+To test admin locally, register a user and run `npm run admin:promote -- <email>` in the backend.
