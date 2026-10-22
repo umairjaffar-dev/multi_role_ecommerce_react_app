@@ -7,11 +7,14 @@ import { toApiError } from "./api-error";
 /**
  * Shared Axios instance for every API call.
  * `withCredentials` lets the browser send the httpOnly refresh-token cookie.
+ *
+ * No default Content-Type on purpose: Axios sets application/json for plain objects and
+ * multipart/form-data (with the boundary) for FormData. A fixed JSON header would make
+ * Axios serialise FormData image uploads as JSON.
  */
 export const apiClient = axios.create({
   baseURL: env.VITE_API_BASE_URL,
   withCredentials: true,
-  headers: { "Content-Type": "application/json" },
 });
 
 /** Requests already retried once after a refresh; a second 401 must not loop. */

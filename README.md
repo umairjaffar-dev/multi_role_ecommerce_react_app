@@ -90,5 +90,16 @@ src/
 | Redirect after login | `?redirectTo=` is accepted only for same-app paths (open-redirect protection).                                                                                                                                                                        |
 | Server errors        | `VALIDATION_ERROR` details and codes like `EMAIL_ALREADY_EXISTS` appear under the matching input; other errors appear above the submit button.                                                                                                        |
 
-Routes: `/login`, `/register`, `/account` (logged in), `/admin` (admin only).
+Auth routes: `/login`, `/register`, `/account` (logged in).
 To test admin locally, register a user and run `npm run admin:promote -- <email>` in the backend.
+
+## Products module
+
+| Area       | Routes                                                               | Notes                                                                                                                                                                                                                                                                                                            |
+| ---------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Storefront | `/products`, `/products/:slug`                                       | Search (debounced), category, price range and sort live in the URL (`?category=shoes&sort=price_asc`), validated with Zod; bad values fall back to defaults. Cursor pagination with infinite scroll + "Load more". Detail data starts loading in the route loader and on card hover (prefetch).                  |
+| Admin      | `/admin/products`, `/admin/products/new`, `/admin/products/:id/edit` | Page-based table with search, category, visibility and status (live/deleted/all) filters in the URL. Create/edit share one form; edit sends only changed fields (PATCH). Images upload one by one with progress (max 8, 5 MB, JPEG/PNG/WebP). Delete is a confirmed soft delete; deleted products are read-only. |
+
+- Money is always an integer number of paisa, like the backend. The admin types rupees ("1,499.50"); the form converts text to paisa without floats. Display uses `Intl.NumberFormat` (PKR).
+- Query keys come from one factory (`productKeys`), and every admin write invalidates `productKeys.all`, so the storefront shows changes immediately.
+- Backend has no image delete/reorder endpoint yet; the gallery shows upload order (first image = cover).

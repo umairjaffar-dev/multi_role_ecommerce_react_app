@@ -14,7 +14,7 @@ import {
   type LoginUserInputType,
   type LoginUserSchemaType,
 } from "../schemas/auth.schema";
-import { FormAlert } from "./form-alert";
+import { FormAlert } from "@/components/shared/form-alert";
 import { PasswordInput } from "./password-input";
 
 const LOGIN_FIELDS = ["email", "password"] as const;

@@ -1,4 +1,5 @@
 import { createBrowserRouter } from "react-router";
+import { AdminLayout } from "@/components/layout/admin-layout";
 import { StoreLayout } from "@/components/layout/store-layout";
 import { AppLoadingScreen } from "@/components/shared/app-loading-screen";
 import {
@@ -8,6 +9,8 @@ import {
   rootSessionLoader,
 } from "@/features/auth/lib/route-guards";
 import { endSession, refreshSession, subscribeToAuthEvents } from "@/features/auth/lib/session";
+import { adminProductEditLoader } from "@/features/products/lib/admin-product-loaders";
+import { productDetailLoader } from "@/features/products/lib/product-loaders";
 import { RouteErrorPage } from "@/pages/route-error-page";
 import { queryClient } from "./query-client";
 
@@ -18,10 +21,11 @@ import { queryClient } from "./query-client";
  *   download run in parallel instead of one after the other.
  *
  * Route groups:
- *   public:  /                         (home, later /products, /cart)
+ *   public:  /, /products, /products/:slug
  *   guest:   /login, /register         (logged-in users are redirected away)
  *   auth:    /account                  (guests are redirected to /login?redirectTo=...)
- *   admin:   /admin                    (role "admin", others get a 403 page)
+ *   admin:   /admin, /admin/products, /admin/products/new, /admin/products/:id/edit
+ *            (role "admin"; others get a 403 page)
  */
 export const router = createBrowserRouter([
   {
@@ -41,6 +45,24 @@ export const router = createBrowserRouter([
             lazy: async () => {
               const { HomePage } = await import("@/pages/home-page");
               return { Component: HomePage };
+            },
+          },
+
+          // Storefront catalogue (public)
+          {
+            path: "products",
+            lazy: async () => {
+              const { ProductsPage } = await import("@/pages/products-page");
+              return { Component: ProductsPage };
+            },
+          },
+          {
+            path: "products/:slug",
+            // Data request starts here, in parallel with downloading the page chunk.
+            loader: productDetailLoader,
+            lazy: async () => {
+              const { ProductDetailPage } = await import("@/pages/product-detail-page");
+              return { Component: ProductDetailPage };
             },
           },
 
@@ -79,16 +101,41 @@ export const router = createBrowserRouter([
             ],
           },
 
-          // Admins
+          // Admins: guard on the layout route covers every /admin/* page
           {
             path: "admin",
             loader: requireAdminLoader,
+            Component: AdminLayout,
             children: [
               {
                 index: true,
                 lazy: async () => {
-                  const { AdminDashboardPage } = await import("@/pages/admin-dashboard-page");
+                  const { AdminDashboardPage } = await import("@/pages/admin/admin-dashboard-page");
                   return { Component: AdminDashboardPage };
+                },
+              },
+              {
+                path: "products",
+                lazy: async () => {
+                  const { AdminProductsPage } = await import("@/pages/admin/admin-products-page");
+                  return { Component: AdminProductsPage };
+                },
+              },
+              {
+                path: "products/new",
+                lazy: async () => {
+                  const { AdminProductCreatePage } =
+                    await import("@/pages/admin/admin-product-create-page");
+                  return { Component: AdminProductCreatePage };
+                },
+              },
+              {
+                path: "products/:id/edit",
+                loader: adminProductEditLoader,
+                lazy: async () => {
+                  const { AdminProductEditPage } =
+                    await import("@/pages/admin/admin-product-edit-page");
+                  return { Component: AdminProductEditPage };
                 },
               },
             ],
