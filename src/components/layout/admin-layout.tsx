@@ -1,10 +1,11 @@
-import { LayoutDashboard, Package } from "lucide-react";
+import { Cctv, LayoutDashboard, Package } from "lucide-react";
 import { NavLink, Outlet } from "react-router";
 import { cn } from "@/lib/utils";
 
 const ADMIN_NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/products", label: "Products", icon: Package, end: false },
+  { to: "/admin/cameras", label: "Cameras", icon: Cctv, end: false },
 ] as const;
 
 /** Admin shell: sidebar on desktop, horizontal tabs on mobile. Nested inside StoreLayout. */
