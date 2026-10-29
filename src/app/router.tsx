@@ -9,6 +9,7 @@ import {
   rootSessionLoader,
 } from "@/features/auth/lib/route-guards";
 import { endSession, refreshSession, subscribeToAuthEvents } from "@/features/auth/lib/session";
+import { cameraDetailLoader } from "@/features/cameras/lib/camera-loaders";
 import { adminProductEditLoader } from "@/features/products/lib/admin-product-loaders";
 import { productDetailLoader } from "@/features/products/lib/product-loaders";
 import { RouteErrorPage } from "@/pages/route-error-page";
@@ -24,7 +25,8 @@ import { queryClient } from "./query-client";
  *   public:  /, /products, /products/:slug
  *   guest:   /login, /register         (logged-in users are redirected away)
  *   auth:    /account                  (guests are redirected to /login?redirectTo=...)
- *   admin:   /admin, /admin/products, /admin/products/new, /admin/products/:id/edit
+ *   admin:   /admin, /admin/products, /admin/products/new, /admin/products/:id/edit,
+ *            /admin/cameras, /admin/cameras/:id
  *            (role "admin"; others get a 403 page)
  */
 export const router = createBrowserRouter([
@@ -136,6 +138,22 @@ export const router = createBrowserRouter([
                   const { AdminProductEditPage } =
                     await import("@/pages/admin/admin-product-edit-page");
                   return { Component: AdminProductEditPage };
+                },
+              },
+              {
+                path: "cameras",
+                lazy: async () => {
+                  const { AdminCamerasPage } = await import("@/pages/admin/admin-cameras-page");
+                  return { Component: AdminCamerasPage };
+                },
+              },
+              {
+                path: "cameras/:id",
+                loader: cameraDetailLoader,
+                lazy: async () => {
+                  const { AdminCameraDetailPage } =
+                    await import("@/pages/admin/admin-camera-detail-page");
+                  return { Component: AdminCameraDetailPage };
                 },
               },
             ],

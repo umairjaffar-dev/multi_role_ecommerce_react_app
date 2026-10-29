@@ -103,3 +103,17 @@ To test admin locally, register a user and run `npm run admin:promote -- <email>
 - Money is always an integer number of paisa, like the backend. The admin types rupees ("1,499.50"); the form converts text to paisa without floats. Display uses `Intl.NumberFormat` (PKR).
 - Query keys come from one factory (`productKeys`), and every admin write invalidates `productKeys.all`, so the storefront shows changes immediately.
 - Backend has no image delete/reorder endpoint yet; the gallery shows upload order (first image = cover).
+
+## Cameras module (live view)
+
+| Area  | Routes                                 | Notes                                                                                                                                                                                       |
+| ----- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin | `/admin/cameras`, `/admin/cameras/:id` | Grid of active cameras (1/2/3 columns, kept in `?cols=`), each tile with live video and a stream state badge. Detail page: one camera with native controls (fullscreen) and stream details. |
+
+- **Video never goes through the backend.** The backend returns `hlsUrl` (MediaMTX, port 8888) and the browser plays it directly, like product images come straight from object storage.
+- **Player** (`features/cameras/components/hls-player.tsx`): hls.js where Media Source Extensions exist, native HLS otherwise (iOS Safari). hls.js is imported on demand and lives in its own `vendor-hls` chunk, so other pages never download it.
+- **Only visible tiles play.** An off-screen tile stops downloading segments, and MediaMTX can disconnect an on-demand camera nobody watches.
+- **Reconnect:** a dropped stream (camera offline, MediaMTX restart) retries with exponential backoff (2 s up to 30 s). The backend reconcile job re-creates MediaMTX paths after a restart, so the grid heals by itself.
+- **Status badge** polls `GET /admin/cameras/:id/status` every 10 s and re-checks right away when the tile's own playback starts or drops. `Standby` means nobody is watching (with on-demand pulling, an offline camera looks the same); `Media server down` means MediaMTX is unreachable.
+- Cameras are created through the API for now (`POST /api/v1/admin/cameras`); a management UI is a separate step.
+- Local stack: backend (`npm run dev`) + `npm run services:up` in the backend repo (MediaMTX, fake cameras).

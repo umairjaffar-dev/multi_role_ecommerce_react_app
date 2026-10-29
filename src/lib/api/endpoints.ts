@@ -21,5 +21,8 @@ export const API_ENDPOINTS = {
     PRODUCTS: "/admin/products",
     PRODUCT: (id: string) => `/admin/products/${encodeURIComponent(id)}`,
     PRODUCT_IMAGES: (id: string) => `/admin/products/${encodeURIComponent(id)}/images`,
+    CAMERAS: "/admin/cameras",
+    CAMERA: (id: string) => `/admin/cameras/${encodeURIComponent(id)}`,
+    CAMERA_STATUS: (id: string) => `/admin/cameras/${encodeURIComponent(id)}/status`,
   },
 } as const;

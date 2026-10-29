@@ -27,6 +27,9 @@ export default defineConfig({
             { name: "vendor-router", test: /node_modules[\\/]react-router[\\/]/ },
             { name: "vendor-query", test: /node_modules[\\/]@tanstack[\\/]/ },
             { name: "vendor-zod", test: /node_modules[\\/]zod[\\/]/ },
+            // Only the camera pages import hls.js (dynamically), so keep it out of the shared
+            // vendor chunk that every page downloads.
+            { name: "vendor-hls", test: /node_modules[\\/]hls\.js[\\/]/ },
             { name: "vendor", test: /node_modules[\\/]/ },
           ],
         },
