@@ -106,14 +106,18 @@ To test admin locally, register a user and run `npm run admin:promote -- <email>
 
 ## Cameras module (live view)
 
-| Area  | Routes                                 | Notes                                                                                                                                                                                       |
-| ----- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin | `/admin/cameras`, `/admin/cameras/:id` | Grid of active cameras (1/2/3 columns, kept in `?cols=`), each tile with live video and a stream state badge. Detail page: one camera with native controls (fullscreen) and stream details. |
+| Area   | Routes                                                                   | Notes                                                                                                                                                                                       |
+| ------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Live   | `/admin/cameras`, `/admin/cameras/:id`                                   | Grid of active cameras (1/2/3 columns, kept in `?cols=`), each tile with live video and a stream state badge. Detail page: one camera with native controls (fullscreen) and stream details. |
+| Manage | `/admin/cameras/manage`, `/admin/cameras/new`, `/admin/cameras/:id/edit` | Table of all cameras with search and active/disabled filter in the URL, inline enable/disable switch, edit and confirmed delete.                                                            |
 
 - **Video never goes through the backend.** The backend returns `hlsUrl` (MediaMTX, port 8888) and the browser plays it directly, like product images come straight from object storage.
 - **Player** (`features/cameras/components/hls-player.tsx`): hls.js where Media Source Extensions exist, native HLS otherwise (iOS Safari). hls.js is imported on demand and lives in its own `vendor-hls` chunk, so other pages never download it.
 - **Only visible tiles play.** An off-screen tile stops downloading segments, and MediaMTX can disconnect an on-demand camera nobody watches.
 - **Reconnect:** a dropped stream (camera offline, MediaMTX restart) retries with exponential backoff (2 s up to 30 s). The backend reconcile job re-creates MediaMTX paths after a restart, so the grid heals by itself.
 - **Status badge** polls `GET /admin/cameras/:id/status` every 10 s and re-checks right away when the tile's own playback starts or drops. `Standby` means nobody is watching (with on-demand pulling, an offline camera looks the same); `Media server down` means MediaMTX is unreachable.
-- Cameras are created through the API for now (`POST /api/v1/admin/cameras`); a management UI is a separate step.
+- **RTSP URL is write-only.** The backend stores it encrypted and only ever returns it with the password masked, so the edit form starts empty ("leave empty to keep the current address") and PATCHes it only when the admin types a new one.
+- **Form rules mirror the backend** (`rtsp://`/`rtsps://` only, stream path `^[a-z0-9][a-z0-9_-]{1,63}$`). An empty stream path on create is built from the name. Server answers land on the right field: a taken or reserved stream path (409) under "Stream path"; a media server outage (502) above the submit button.
+- **Enable/disable is not optimistic.** The backend commits only after MediaMTX accepted the change, so the switch flips when the server confirms; on a 502 it stays put and a toast explains why.
+- Every camera write invalidates `cameraKeys.all` in all open tabs, so a wall screen showing the live grid picks up new or disabled cameras without a reload.
 - Local stack: backend (`npm run dev`) + `npm run services:up` in the backend repo (MediaMTX, fake cameras).

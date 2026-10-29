@@ -1,21 +1,25 @@
-import { queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/api-client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import {
   CameraDetailResponseSchema,
   CameraListResponseSchema,
   CameraStatusResponseSchema,
+  type AdminCameraFiltersSchemaType,
 } from "../schemas/camera.schema";
 
 // Backend maximum page size. Enough for a lab; a real VMS would page or group by site.
 const LIVE_GRID_LIMIT = 100;
 // How often a tile re-checks its stream state. Each visible tile polls on its own.
 const STATUS_REFRESH_MS = 10_000;
+export const ADMIN_CAMERA_PAGE_SIZE = 10;
 
 /** Query key factory, same pattern as productKeys. */
 export const cameraKeys = {
   all: ["cameras"] as const,
   liveList: () => [...cameraKeys.all, "list", "live"] as const,
+  adminList: (filters: AdminCameraFiltersSchemaType) =>
+    [...cameraKeys.all, "list", "admin", filters] as const,
   detail: (id: string) => [...cameraKeys.all, "detail", id] as const,
   status: (id: string) => [...cameraKeys.all, "status", id] as const,
 };
@@ -31,6 +35,23 @@ export function liveCameraListQuery() {
       });
       return CameraListResponseSchema.parse(response.data);
     },
+  });
+}
+
+/** Management table: every camera (active or not), page pagination, filters from the URL. */
+export function adminCameraListQuery(filters: AdminCameraFiltersSchemaType) {
+  return queryOptions({
+    queryKey: cameraKeys.adminList(filters),
+    queryFn: async ({ signal }) => {
+      const response = await apiClient.get(API_ENDPOINTS.ADMIN.CAMERAS, {
+        params: { ...filters, limit: ADMIN_CAMERA_PAGE_SIZE },
+        signal,
+      });
+      return CameraListResponseSchema.parse(response.data);
+    },
+    // Keep the current page on screen (dimmed) while the next one loads
+    placeholderData: keepPreviousData,
+    staleTime: 0,
   });
 }
 

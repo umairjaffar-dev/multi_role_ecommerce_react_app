@@ -1,4 +1,5 @@
-import { Columns2, LayoutGrid, Rows2 } from "lucide-react";
+import { Columns2, LayoutGrid, Plus, Rows2, Settings2 } from "lucide-react";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { CameraGrid } from "@/features/cameras/components/camera-grid";
 import { useCameraGridColumns } from "@/features/cameras/hooks/use-camera-grid-columns";
@@ -26,21 +27,35 @@ export function AdminCamerasPage() {
             Live view. Tiles play only while on screen.
           </p>
         </div>
-        <div role="group" aria-label="Grid layout" className="flex gap-1">
-          {LAYOUT_OPTIONS.map(({ value, label, icon: Icon }) => (
-            <Button
-              key={value}
-              variant={columns === value ? "secondary" : "ghost"}
-              size="icon"
-              aria-label={label}
-              aria-pressed={columns === value}
-              onClick={() => {
-                setColumns(value);
-              }}
-            >
-              <Icon />
-            </Button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div role="group" aria-label="Grid layout" className="flex gap-1">
+            {LAYOUT_OPTIONS.map(({ value, label, icon: Icon }) => (
+              <Button
+                key={value}
+                variant={columns === value ? "secondary" : "ghost"}
+                size="icon"
+                aria-label={label}
+                aria-pressed={columns === value}
+                onClick={() => {
+                  setColumns(value);
+                }}
+              >
+                <Icon />
+              </Button>
+            ))}
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/cameras/manage">
+              <Settings2 />
+              Manage
+            </Link>
+          </Button>
+          <Button size="sm" asChild>
+            <Link to="/admin/cameras/new">
+              <Plus />
+              Add camera
+            </Link>
+          </Button>
         </div>
       </div>
       <CameraGrid columns={columns} />

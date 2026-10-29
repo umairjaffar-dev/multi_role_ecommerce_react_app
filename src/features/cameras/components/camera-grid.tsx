@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Cctv } from "lucide-react";
+import { Cctv, Plus } from "lucide-react";
+import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/api/api-error";
 import { cn } from "@/lib/utils";
@@ -42,9 +44,14 @@ export function CameraGrid({ columns }: { columns: CameraGridColumnsSchemaType }
         <Cctv className="size-8 text-muted-foreground" />
         <h2 className="font-medium">No active cameras</h2>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Cameras are added through the API for now (POST /api/v1/admin/cameras). Disabled cameras
-          are not shown here.
+          Add a camera to see it here. Disabled cameras are not shown in the live view.
         </p>
+        <Button size="sm" asChild>
+          <Link to="/admin/cameras/new">
+            <Plus />
+            Add camera
+          </Link>
+        </Button>
       </div>
     );
   }
