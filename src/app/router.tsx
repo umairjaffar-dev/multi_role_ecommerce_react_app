@@ -26,7 +26,8 @@ import { queryClient } from "./query-client";
  *   guest:   /login, /register         (logged-in users are redirected away)
  *   auth:    /account                  (guests are redirected to /login?redirectTo=...)
  *   admin:   /admin, /admin/products, /admin/products/new, /admin/products/:id/edit,
- *            /admin/cameras, /admin/cameras/:id
+ *            /admin/cameras, /admin/cameras/manage, /admin/cameras/new,
+ *            /admin/cameras/:id, /admin/cameras/:id/edit
  *            (role "admin"; others get a 403 page)
  */
 export const router = createBrowserRouter([
@@ -145,6 +146,31 @@ export const router = createBrowserRouter([
                 lazy: async () => {
                   const { AdminCamerasPage } = await import("@/pages/admin/admin-cameras-page");
                   return { Component: AdminCamerasPage };
+                },
+              },
+              {
+                path: "cameras/manage",
+                lazy: async () => {
+                  const { AdminCameraManagePage } =
+                    await import("@/pages/admin/admin-camera-manage-page");
+                  return { Component: AdminCameraManagePage };
+                },
+              },
+              {
+                path: "cameras/new",
+                lazy: async () => {
+                  const { AdminCameraCreatePage } =
+                    await import("@/pages/admin/admin-camera-create-page");
+                  return { Component: AdminCameraCreatePage };
+                },
+              },
+              {
+                path: "cameras/:id/edit",
+                loader: cameraDetailLoader,
+                lazy: async () => {
+                  const { AdminCameraEditPage } =
+                    await import("@/pages/admin/admin-camera-edit-page");
+                  return { Component: AdminCameraEditPage };
                 },
               },
               {

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { Link, useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,12 @@ export function AdminCameraDetailPage() {
           <p className="text-sm text-muted-foreground">{camera.location ?? "No location"}</p>
         </div>
         <CameraStatusBadge state={camera.isActive ? status?.state : "disabled"} />
+        <Button variant="outline" size="sm" asChild>
+          <Link to={`/admin/cameras/${camera.id}/edit`}>
+            <Pencil />
+            Edit
+          </Link>
+        </Button>
       </div>
 
       {camera.isActive ? (
