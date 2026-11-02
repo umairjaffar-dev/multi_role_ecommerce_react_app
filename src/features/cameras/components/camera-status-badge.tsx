@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { CameraStreamStateSchemaType } from "../schemas/camera.schema";
+import type { CameraDisplayStateType } from "../lib/camera-display-state";
 
 const STATE_DISPLAY: Record<
-  CameraStreamStateSchemaType,
+  CameraDisplayStateType,
   {
     label: string;
     variant: "success" | "secondary" | "warning" | "destructive";
@@ -22,6 +22,12 @@ const STATE_DISPLAY: Record<
     variant: "secondary",
     dot: "bg-muted-foreground",
     hint: "Nobody is watching, so the camera is not connected. With on-demand pulling a camera that is offline looks the same.",
+  },
+  offline: {
+    label: "Offline",
+    variant: "destructive",
+    dot: "bg-destructive",
+    hint: "The camera sends no video: wrong address or password, powered off, or off the network.",
   },
   not_synced: {
     label: "Syncing",
@@ -44,7 +50,7 @@ const STATE_DISPLAY: Record<
 };
 
 /** Stream state from GET /admin/cameras/:id/status. `undefined` while the first check runs. */
-export function CameraStatusBadge({ state }: { state: CameraStreamStateSchemaType | undefined }) {
+export function CameraStatusBadge({ state }: { state: CameraDisplayStateType | undefined }) {
   if (!state) return <Badge variant="outline">Checking…</Badge>;
 
   const { label, variant, dot, hint } = STATE_DISPLAY[state];
