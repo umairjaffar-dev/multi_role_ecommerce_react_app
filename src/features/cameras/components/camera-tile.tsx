@@ -1,16 +1,19 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, Maximize2 } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { cameraStatusQuery } from "../api/camera.queries";
 import type { CameraSchemaType } from "../schemas/camera.schema";
+import { getCameraDisplayState } from "../lib/camera-display-state";
 import { CameraStatusBadge } from "./camera-status-badge";
-import { HlsPlayer } from "./hls-player";
+import { HlsPlayer, type PlayerStateType } from "./hls-player";
 
 /** One camera in the live grid: video on top, name and live state below. */
 export function CameraTile({ camera }: { camera: CameraSchemaType }) {
   const statusQuery = useQuery(cameraStatusQuery(camera.id));
   const status = statusQuery.data;
+  const [playerState, setPlayerState] = useState<PlayerStateType>();
 
   return (
     <article className="overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -18,9 +21,10 @@ export function CameraTile({ camera }: { camera: CameraSchemaType }) {
         src={camera.hlsUrl}
         title={`Live video: ${camera.name}`}
         onStateChange={(state) => {
+          setPlayerState(state);
           // Our own player just started or lost the stream: the status changed, check now
           // instead of waiting for the next poll.
-          if (state === "playing" || state === "reconnecting") void statusQuery.refetch();
+          if (state !== "connecting") void statusQuery.refetch();
         }}
       />
       <div className="flex items-start justify-between gap-3 p-3">
@@ -40,7 +44,7 @@ export function CameraTile({ camera }: { camera: CameraSchemaType }) {
               {status.viewers}
             </span>
           )}
-          <CameraStatusBadge state={status?.state} />
+          <CameraStatusBadge state={getCameraDisplayState(status?.state, playerState)} />
           <Button variant="ghost" size="icon" asChild>
             <Link to={`/admin/cameras/${camera.id}`} aria-label={`Open ${camera.name}`}>
               <Maximize2 />

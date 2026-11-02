@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import type Hls from "hls.js";
-import type { HlsConfig } from "hls.js";
-import { Loader2, RefreshCw, VideoOff } from "lucide-react";
+import type { ErrorData, ErrorTypes, HlsConfig } from "hls.js";
+import { CloudOff, Loader2, RefreshCw, VideoOff } from "lucide-react";
 import { useInView } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
 
-export type PlayerStateType = "connecting" | "playing" | "reconnecting" | "unsupported";
+/**
+ * connecting    first attempt is running
+ * playing       video is on screen
+ * unreachable   MediaMTX answered, but it could not get video from the camera
+ *               (wrong address or password, camera off, path missing)
+ * server_down   no answer from MediaMTX at all (stopped, wrong host, network)
+ * reconnecting  the stream broke for another reason (e.g. a decode error) and is retrying
+ * unsupported   the browser cannot play HLS
+ */
+export type PlayerStateType =
+  "connecting" | "playing" | "unreachable" | "server_down" | "reconnecting" | "unsupported";
 
 // MediaMTX serves Low-Latency HLS by default (1 s segments, 200 ms parts).
 const HLS_CONFIG: Partial<HlsConfig> = {
@@ -14,7 +24,30 @@ const HLS_CONFIG: Partial<HlsConfig> = {
   backBufferLength: 10,
   // After a stall, play slightly faster to catch up with live instead of drifting behind.
   maxLiveSyncPlaybackRate: 1.5,
+  // MediaMTX already waits ~10 s for an on-demand camera before answering 500, so an extra
+  // hls.js retry would only double the wait. Fail fast; our own backoff below retries.
+  manifestLoadPolicy: {
+    default: {
+      maxTimeToFirstByteMs: Infinity,
+      maxLoadTimeMs: 20_000,
+      timeoutRetry: { maxNumRetry: 0, retryDelayMs: 0, maxRetryDelayMs: 0 },
+      errorRetry: { maxNumRetry: 0, retryDelayMs: 0, maxRetryDelayMs: 0 },
+    },
+  },
 };
+
+/**
+ * Why a fatal hls.js error happened, from the HTTP answer of the failed playlist request.
+ * MediaMTX answers 500 "source of path has timed out" when the camera sends nothing,
+ * and 404 when the path does not exist. No HTTP status at all means MediaMTX itself
+ * could not be reached.
+ */
+function classifyFatalError(data: ErrorData, networkErrorType: ErrorTypes): PlayerStateType {
+  if (data.type !== networkErrorType) return "reconnecting";
+  const status = data.response?.code ?? 0;
+  if (status === 0) return "server_down";
+  return status >= 400 ? "unreachable" : "reconnecting";
+}
 
 const RETRY_BASE_MS = 2_000;
 const RETRY_MAX_MS = 30_000;
@@ -75,10 +108,10 @@ export function HlsPlayer({
       video.load();
     };
 
-    const scheduleRetry = () => {
+    const scheduleRetry = (failure: PlayerStateType) => {
       if (isDisposed) return;
       detach();
-      setState("reconnecting");
+      setState(failure);
       const delay = Math.min(RETRY_BASE_MS * 2 ** retries, RETRY_MAX_MS);
       retries += 1;
       retryTimer = window.setTimeout(() => void start(), delay);
@@ -93,7 +126,10 @@ export function HlsPlayer({
         hls = new HlsLibrary(HLS_CONFIG);
         hls.on(HlsLibrary.Events.ERROR, (_event, data) => {
           // Non-fatal errors (a late segment) are recovered by hls.js itself.
-          if (data.fatal) scheduleRetry();
+          // The enum comes from the lazily loaded library, so hls.js stays out of this chunk
+          if (data.fatal) {
+            scheduleRetry(classifyFatalError(data, HlsLibrary.ErrorTypes.NETWORK_ERROR));
+          }
         });
         hls.loadSource(src);
         hls.attachMedia(video);
@@ -114,7 +150,7 @@ export function HlsPlayer({
     };
     // Native HLS path reports failures here instead of through hls.js.
     const handleError = () => {
-      if (!hls) scheduleRetry();
+      if (!hls) scheduleRetry("reconnecting");
     };
 
     video.addEventListener("playing", handlePlaying);
@@ -160,7 +196,23 @@ export function HlsPlayer({
           {state === "reconnecting" && (
             <>
               <RefreshCw className="size-6 animate-spin" />
-              Stream unavailable, reconnecting…
+              Stream interrupted, reconnecting…
+            </>
+          )}
+          {state === "unreachable" && (
+            <>
+              <VideoOff className="size-6" />
+              <span className="font-medium text-white">Camera unreachable</span>
+              <span className="max-w-64 text-center text-xs">
+                No video from this camera. Check its address, power and network. Retrying…
+              </span>
+            </>
+          )}
+          {state === "server_down" && (
+            <>
+              <CloudOff className="size-6" />
+              <span className="font-medium text-white">Media server unreachable</span>
+              <span className="text-xs">Retrying…</span>
             </>
           )}
           {state === "unsupported" && (

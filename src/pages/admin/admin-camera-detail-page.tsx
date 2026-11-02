@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { Link, useParams } from "react-router";
@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cameraDetailQuery, cameraStatusQuery } from "@/features/cameras/api/camera.queries";
 import { CameraStatusBadge } from "@/features/cameras/components/camera-status-badge";
-import { HlsPlayer } from "@/features/cameras/components/hls-player";
+import { HlsPlayer, type PlayerStateType } from "@/features/cameras/components/hls-player";
+import { getCameraDisplayState } from "@/features/cameras/lib/camera-display-state";
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -24,6 +25,7 @@ export function AdminCameraDetailPage() {
   const { data: camera } = useSuspenseQuery(cameraDetailQuery(id));
   const statusQuery = useQuery(cameraStatusQuery(id));
   const status = statusQuery.data;
+  const [playerState, setPlayerState] = useState<PlayerStateType>();
 
   return (
     <section className="space-y-6">
@@ -37,7 +39,9 @@ export function AdminCameraDetailPage() {
           <h1 className="truncate text-2xl font-bold tracking-tight">{camera.name}</h1>
           <p className="text-sm text-muted-foreground">{camera.location ?? "No location"}</p>
         </div>
-        <CameraStatusBadge state={camera.isActive ? status?.state : "disabled"} />
+        <CameraStatusBadge
+          state={camera.isActive ? getCameraDisplayState(status?.state, playerState) : "disabled"}
+        />
         <Button variant="outline" size="sm" asChild>
           <Link to={`/admin/cameras/${camera.id}/edit`}>
             <Pencil />
@@ -53,7 +57,8 @@ export function AdminCameraDetailPage() {
           controls
           className="rounded-xl"
           onStateChange={(state) => {
-            if (state === "playing" || state === "reconnecting") void statusQuery.refetch();
+            setPlayerState(state);
+            if (state !== "connecting") void statusQuery.refetch();
           }}
         />
       ) : (
